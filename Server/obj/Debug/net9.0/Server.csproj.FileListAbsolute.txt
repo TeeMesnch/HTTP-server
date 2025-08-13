@@ -12,3 +12,4 @@
 /Users/jonathan/Desktop/cSharp/learning/HTTPserver/Server/obj/Debug/net9.0/Server.pdb
 /Users/jonathan/Desktop/cSharp/learning/HTTPserver/Server/obj/Debug/net9.0/Server.genruntimeconfig.cache
 /Users/jonathan/Desktop/cSharp/learning/HTTPserver/Server/obj/Debug/net9.0/ref/Server.dll
+/Users/jonathan/Desktop/cSharp/learning/HTTPserver/Server/obj/Debug/net9.0/Server.sourcelink.json

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.IO;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
@@ -70,8 +71,17 @@ namespace Server
                 }
                 else if (url.StartsWith($"/file/"))
                 {
-                    stream.Write(notFound);
-                    Console.WriteLine("file requested");
+                    //file.exists or something later
+                    var prefix = "/file/".Length;
+                    var file = url.Substring(prefix);
+                    
+                    Console.WriteLine(file);
+                    
+                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: application/octet-stream\r\n\r\nContent-Length: {file.Length}\r\n\r\n");
+                    var body = Encoding.UTF8.GetBytes($"{file}\r\n\r\n");
+                    
+                    stream.Write(header);
+                    stream.Write(body);
                 }
                 else
                 {
