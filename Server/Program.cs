@@ -11,7 +11,9 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("\nstarting Server\n");
+            string newDirectory = "/Users/jonathan/desktop";
+            Directory.SetCurrentDirectory(newDirectory);
+            Console.WriteLine($"Current Directory: {Directory.GetCurrentDirectory()}\n");
             
             TcpListener server = new TcpListener(IPAddress.Any, 4221);
             server.Start();
@@ -71,17 +73,27 @@ namespace Server
                 }
                 else if (url.StartsWith($"/file/"))
                 {
-                    //file.exists or something later
                     var prefix = "/file/".Length;
                     var file = url.Substring(prefix);
                     
-                    Console.WriteLine(file);
-                    
-                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: application/octet-stream\r\n\r\nContent-Length: {file.Length}\r\n\r\n");
-                    var body = Encoding.UTF8.GetBytes($"{file}\r\n\r\n");
-                    
-                    stream.Write(header);
-                    stream.Write(body);
+                    if (File.Exists(file))
+                    {
+                        Console.WriteLine($"file requested: {file}");
+                        FileInfo fileInfo = new FileInfo(file);
+                        long lenght = fileInfo.Length;
+                        file = File.ReadAllText(file);
+                        
+                        var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: application/octet-stream\r\n\r\nContent-Length: {lenght}\r\n\r\n");
+                        var body = Encoding.UTF8.GetBytes($"{file}\r\n\r\n");
+                        
+                        stream.Write(header);
+                        stream.Write(body);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"file not found: {file}");
+                        stream.Write(notFound);
+                    }
                 }
                 else
                 {
