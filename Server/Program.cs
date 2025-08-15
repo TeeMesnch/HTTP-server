@@ -23,6 +23,7 @@ namespace Server
             while (running)
             {
                 var response = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
+                var created = Encoding.UTF8.GetBytes("HTTP/1.1 201 Created\r\n\r\n");
                 var notFound = Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n");
 
                 using TcpClient client = server.AcceptTcpClient();
@@ -45,14 +46,21 @@ namespace Server
                 {
                     var prefix = "/echo/".Length;
                     var bodyStr = url.Substring(prefix);
-
+                    
                     var body = Encoding.UTF8.GetBytes($"{bodyStr}\r\n\r\n");
-                    var header = Encoding.UTF8.GetBytes(
-                        $"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {body.Length}\r\n\r\n");
-
-                    stream.Write(header);
-                    stream.Write(body);
-                    Console.WriteLine($"returning {body}");
+                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
+                    
+                    if (request.Contains("gzip"))
+                    {
+                        var gzip = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Encoding: gzip\r\n\r\n");
+                        // add gzip compression later
+                        stream.Write(gzip);
+                    }
+                    else if (!request.Contains("gzip"))
+                    {
+                        stream.Write(header);
+                        stream.Write(body);
+                    }
                 }
                 else if (url.StartsWith("/user-agent"))
                 {
@@ -88,6 +96,18 @@ namespace Server
                         
                         stream.Write(header);
                         stream.Write(body);
+                    }
+                    else if (!File.Exists(file))
+                    {
+                        Console.WriteLine($"file not found: {file}");
+                        if (request.Contains("POST"))
+                        {
+                            var split = request.Split("\r\n\r\n");
+                            Console.WriteLine($"creating new file (name: {file})");
+                            File.WriteAllText(file, split[1]);
+                            
+                            stream.Write(created);
+                        }
                     }
                     else
                     {
