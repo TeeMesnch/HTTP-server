@@ -1,8 +1,13 @@
 import requests
 
 def main():
-    global amount, url, header
+    global amount, url, header, connect
     url = input("url:")
+    reuse = input("reuse session? (y/n): ")
+    if reuse.lower() == "y":
+        connect = "Keep-Alive"
+    else:
+        connect = "Connection: Close"
     header = input("include headers? (y/n): ")
     if url == "":
         url = "http://localhost:4221/"
@@ -23,7 +28,7 @@ def GET():
     try:
         for i in range(amount):
             with requests.Session() as session:
-                get = session.get(url, headers={"Connection": "close"})
+                get = session.get(url, headers={"Connection": connect})
                 if get.status_code == 200:
                     if header.lower() == "y":
                         print(f"\nGET request successful (code: {get.status_code})\n")
@@ -39,7 +44,7 @@ def POST():
     try:
         for i in range(amount):
             with requests.Session() as session:
-                post = session.post(url, headers={"Connection": "close"})
+                post = session.post(url, headers={"Connection": connect})
                 if post.status_code == 200:
                     if header.lower() == "y":
                         print(f"\nPOST request successful (code: {post.status_code})\n")
