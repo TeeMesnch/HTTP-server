@@ -56,14 +56,25 @@ namespace Server
                         var inputFile = bodyStr;
                         var outputFile = "compressedFile.gz";
                         
-                        using FileStream fs = File.Open(inputFile, FileMode.Open);
-                        using FileStream cfs = File.Create(outputFile);
-                        using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
+                        try
                         {
-                            fs.CopyTo(gs);
-                            Console.WriteLine($"compressing File (name: {outputFile})");
+                            using FileStream fs = File.Open(inputFile, FileMode.Open);
+                            using FileStream cfs = File.Create(outputFile);
+                            using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
+                            {
+                                fs.CopyTo(gs);
+                                Console.WriteLine($"compressing File (name: {outputFile})");
+                            }
                         }
-                        
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                        finally
+                        {
+                            stream.Write(notFound);
+                        }
+
                         long fileSize = new FileInfo("compressedFile.gz").Length;
                         
                         var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {fileSize}\r\n\r\nContent-Encoding: gzip\r\n\r\n");
