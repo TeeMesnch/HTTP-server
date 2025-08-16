@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
@@ -29,7 +30,7 @@ namespace Server
                 using TcpClient client = server.AcceptTcpClient();
                 var stream = client.GetStream();
                 var reader = new StreamReader(stream, Encoding.UTF8);
-
+                
                 byte[] buffer = new byte[1024];
                 int bytesRead = stream.Read(buffer, 0, buffer.Length);
                 string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
@@ -52,8 +53,21 @@ namespace Server
                     
                     if (request.Contains("gzip"))
                     {
-                        var gzip = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Encoding: gzip\r\n\r\n");
-                        // add gzip compression later
+                        var inputFile = bodyStr;
+                        var outputFile = "compressedFile.gz";
+                        
+                        using FileStream fs = File.Open(inputFile, FileMode.Open);
+                        using FileStream cfs = File.Create(outputFile);
+                        using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
+                        {
+                            fs.CopyTo(gs);
+                            Console.WriteLine($"compressing File (name: {outputFile})");
+                        }
+                        
+                        long fileSize = new FileInfo("compressedFile.gz").Length;
+                        
+                        var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {fileSize}\r\n\r\nContent-Encoding: gzip\r\n\r\n");
+                        
                         stream.Write(gzip);
                     }
                     else if (!request.Contains("gzip"))
