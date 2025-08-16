@@ -53,7 +53,8 @@ namespace Server
                     
                     if (request.Contains("gzip"))
                     {
-                        var inputFile = bodyStr;
+                        var fileName = url.Substring(prefix);
+                        var inputFile = fileName;
                         var outputFile = "compressedFile.gz";
                         
                         try
@@ -69,10 +70,6 @@ namespace Server
                         catch (Exception ex)
                         {
                             Console.WriteLine(ex.Message);
-                        }
-                        finally
-                        {
-                            stream.Write(notFound);
                         }
 
                         long fileSize = new FileInfo("compressedFile.gz").Length;
@@ -147,8 +144,6 @@ namespace Server
                 }
 
             }
-            
-            server.Stop();
         }
     }
 }
