@@ -36,7 +36,7 @@ namespace Server
                 string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 var lines = request.Split("\r\n");
                 var requestLine = lines[0].Split(' ');
-                var url = requestLine[1];
+                var url = requestLine[1];//mega bug
 
                 if (url == "/")
                 {
@@ -48,8 +48,8 @@ namespace Server
                     var prefix = "/echo/".Length;
                     var bodyStr = url.Substring(prefix);
                     
-                    var body = Encoding.UTF8.GetBytes($"{bodyStr}\r\n\r\n");
-                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
+                    var body = Encoding.UTF8.GetBytes($"{bodyStr}");
+                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
                     
                     if (request.Contains("gzip"))
                     {
@@ -74,7 +74,7 @@ namespace Server
 
                         long fileSize = new FileInfo("compressedFile.gz").Length;
                         
-                        var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\nContent-Length: {fileSize}\r\n\r\nContent-Encoding: gzip\r\n\r\n");
+                        var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
                         
                         stream.Write(gzip);
                     }
@@ -95,8 +95,8 @@ namespace Server
                         userAgent = userAgent.Substring(46);
                     }
 
-                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: text/plain\r\n\r\n");
-                    var body = Encoding.UTF8.GetBytes($"{userAgent}\r\n\r\n");
+                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
+                    var body = Encoding.UTF8.GetBytes($"{userAgent}");
 
                     stream.Write(header);
                     stream.Write(body);
@@ -113,8 +113,8 @@ namespace Server
                         long lenght = fileInfo.Length;
                         file = File.ReadAllText(file);
                         
-                        var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n\r\nContent-Type: application/octet-stream\r\n\r\nContent-Length: {lenght}\r\n\r\n");
-                        var body = Encoding.UTF8.GetBytes($"{file}\r\n\r\n");
+                        var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
+                        var body = Encoding.UTF8.GetBytes($"{file}");
                         
                         stream.Write(header);
                         stream.Write(body);
