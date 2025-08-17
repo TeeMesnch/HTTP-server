@@ -20,6 +20,7 @@
 # ----------------------------
 bin/
 obj/
+HTTPserver.sln.DotSettings.user/
 
 # ----------------------------
 # macOS system files
