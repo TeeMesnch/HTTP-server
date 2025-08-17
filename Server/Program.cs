@@ -1,9 +1,6 @@
 ﻿using System.Net;
-using System.IO;
 using System.IO.Compression;
-using System.Net.Http.Headers;
 using System.Net.Sockets;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace Server
@@ -14,10 +11,15 @@ namespace Server
         {
             string newDirectory = "/Users/jonathan/desktop";
             Directory.SetCurrentDirectory(newDirectory);
-            Console.WriteLine($"Current Directory: {Directory.GetCurrentDirectory()}\n");
+            Console.WriteLine($"\nCurrent Directory: {Directory.GetCurrentDirectory()}\n");
+
+            const int port = 4221;
+            var ip = IPAddress.Loopback;
             
-            TcpListener server = new TcpListener(IPAddress.Any, 4221);
+            TcpListener server = new TcpListener(ip, port);
             server.Start();
+            
+            Console.WriteLine($"starting server (port: {port}) (ip: {ip})\n");
 
             bool running = true;
 
@@ -41,13 +43,13 @@ namespace Server
                     request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     var lines = request.Split("\r\n");
                     var requestLine = lines[0].Split(' ');
-                    url = requestLine[1]; //mega bug
+                    url = requestLine[1];
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
                 }
-
+                
                 if (url == "/")
                 {
                     stream.Write(response);
@@ -86,8 +88,7 @@ namespace Server
                         {
                             long fileSize = new FileInfo("compressedFile.gz").Length;
 
-                            var gzip = Encoding.UTF8.GetBytes(
-                                $"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
+                            var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
 
                             stream.Write(gzip);
                         }
@@ -98,8 +99,9 @@ namespace Server
                     }
                     else if (!request.Contains("gzip"))
                     {
-                        stream.Write(header);
-                        stream.Write(body);
+                        Console.WriteLine("request wont be compressed"); 
+                        stream.Write(header); 
+                        stream.Write(body); 
                     }
                 }
                 else if (url.StartsWith("/user-agent"))
@@ -116,6 +118,8 @@ namespace Server
                     var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
                     var body = Encoding.UTF8.GetBytes($"{userAgent}");
 
+                    Console.WriteLine("user-agent requested");
+                    
                     stream.Write(header);
                     stream.Write(body);
                 }
@@ -176,7 +180,6 @@ namespace Server
                     Console.WriteLine("not found 404");
                     stream.Write(notFound);
                 }
-
             }
         }
     }
