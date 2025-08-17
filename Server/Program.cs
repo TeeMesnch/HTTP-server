@@ -13,7 +13,7 @@ namespace Server
             Directory.SetCurrentDirectory(newDirectory);
             Console.WriteLine($"\nCurrent Directory: {Directory.GetCurrentDirectory()}\n");
 
-            const int port = 4221;
+            const int port = 80;
             var ip = IPAddress.Loopback;
             
             TcpListener server = new TcpListener(ip, port);
