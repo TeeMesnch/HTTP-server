@@ -30,13 +30,23 @@ namespace Server
                 using TcpClient client = server.AcceptTcpClient();
                 var stream = client.GetStream();
                 var reader = new StreamReader(stream, Encoding.UTF8);
+
+                var url = "";
+                string request = "";
                 
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                var lines = request.Split("\r\n");
-                var requestLine = lines[0].Split(' ');
-                var url = requestLine[1];//mega bug
+                try
+                {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    var lines = request.Split("\r\n");
+                    var requestLine = lines[0].Split(' ');
+                    url = requestLine[1]; //mega bug
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
 
                 if (url == "/")
                 {
@@ -72,11 +82,19 @@ namespace Server
                             Console.WriteLine(ex.Message);
                         }
 
-                        long fileSize = new FileInfo("compressedFile.gz").Length;
-                        
-                        var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
-                        
-                        stream.Write(gzip);
+                        try
+                        {
+                            long fileSize = new FileInfo("compressedFile.gz").Length;
+
+                            var gzip = Encoding.UTF8.GetBytes(
+                                $"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
+
+                            stream.Write(gzip);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
                     }
                     else if (!request.Contains("gzip"))
                     {
@@ -108,27 +126,43 @@ namespace Server
                     
                     if (File.Exists(file))
                     {
-                        Console.WriteLine($"file requested: {file}");
-                        FileInfo fileInfo = new FileInfo(file);
-                        long lenght = fileInfo.Length;
-                        file = File.ReadAllText(file);
-                        
-                        var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
-                        var body = Encoding.UTF8.GetBytes($"{file}");
-                        
-                        stream.Write(header);
-                        stream.Write(body);
+                        try
+                        {
+                            Console.WriteLine($"file requested: {file}");
+                            FileInfo fileInfo = new FileInfo(file);
+                            long lenght = fileInfo.Length;
+                            file = File.ReadAllText(file);
+
+
+                            var header = Encoding.UTF8.GetBytes(
+                                $"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
+                            var body = Encoding.UTF8.GetBytes($"{file}");
+
+                            stream.Write(header);
+                            stream.Write(body);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
                     }
                     else if (!File.Exists(file))
                     {
                         Console.WriteLine($"file not found: {file}");
-                        if (request.Contains("POST"))
+                        try
                         {
-                            var split = request.Split("\r\n\r\n");
-                            Console.WriteLine($"creating new file (name: {file})");
-                            File.WriteAllText(file, split[1]);
-                            
-                            stream.Write(created);
+                            if (request.Contains("POST"))
+                            {
+                                var split = request.Split("\r\n\r\n");
+                                Console.WriteLine($"creating new file (name: {file})");
+                                File.WriteAllText(file, split[1]);
+
+                                stream.Write(created);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
                         }
                     }
                     else
