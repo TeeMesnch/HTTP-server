@@ -9,11 +9,12 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            string newDirectory = "/Users/jonathan/desktop";
+            //directory for testing purposes
+            string newDirectory = "/Users/jonathan/desktop/Server";
             Directory.SetCurrentDirectory(newDirectory);
             Console.WriteLine($"\nCurrent Directory: {Directory.GetCurrentDirectory()}\n");
 
-            const int port = 4221;
+            const int port = 6000;
             var ip = IPAddress.Loopback;
             
             TcpListener server = new TcpListener(ip, port);
@@ -22,12 +23,18 @@ namespace Server
             Console.WriteLine($"starting server (port: {port}) (ip: {ip})\n");
 
             bool running = true;
+            
+            Random rndInt = new Random();
+            int id = rndInt.Next();
+            Console.WriteLine($"(id: {id})\n");
 
             while (running)
             {
                 var response = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
                 var created = Encoding.UTF8.GetBytes("HTTP/1.1 201 Created\r\n\r\n");
                 var notFound = Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n");
+                var forbidden  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
+                var internalError = Encoding.UTF8.GetBytes("HTTP/1.1 500 Internal Error\r\n\r\n");
 
                 using TcpClient client = server.AcceptTcpClient();
                 var stream = client.GetStream();
@@ -52,8 +59,8 @@ namespace Server
                 
                 if (url == "/")
                 {
+                    Console.WriteLine("index.html requested");
                     stream.Write(response);
-                    Console.WriteLine("connection made");
                 }
                 else if (url.StartsWith("/echo/"))
                 {
@@ -63,46 +70,8 @@ namespace Server
                     var body = Encoding.UTF8.GetBytes($"{bodyStr}");
                     var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
                     
-                    if (request.Contains("gzip"))
-                    {
-                        var fileName = url.Substring(prefix);
-                        var inputFile = fileName;
-                        var outputFile = "compressedFile.gz";
-                        
-                        try
-                        {
-                            using FileStream fs = File.Open(inputFile, FileMode.Open);
-                            using FileStream cfs = File.Create(outputFile);
-                            using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
-                            {
-                                fs.CopyTo(gs);
-                                Console.WriteLine($"compressing File (name: {outputFile})");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-
-                        try
-                        {
-                            long fileSize = new FileInfo("compressedFile.gz").Length;
-
-                            var gzip = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {fileSize}\r\nContent-Encoding: gzip\r\n\r\n");
-
-                            stream.Write(gzip);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-                    }
-                    else if (!request.Contains("gzip"))
-                    {
-                        Console.WriteLine("request wont be compressed"); 
-                        stream.Write(header); 
-                        stream.Write(body); 
-                    }
+                    stream.Write(header);
+                    stream.Write(body);
                 }
                 else if (url.StartsWith("/user-agent"))
                 {
@@ -130,24 +99,55 @@ namespace Server
                     
                     if (File.Exists(file))
                     {
-                        try
+                        if (request.Contains(id.ToString()))
                         {
-                            Console.WriteLine($"file requested: {file}");
-                            FileInfo fileInfo = new FileInfo(file);
-                            long lenght = fileInfo.Length;
-                            file = File.ReadAllText(file);
+                            if (request.Contains("gzip"))
+                            {
+                                var fileName = url.Substring(prefix);
+                                var inputFile = fileName;
+                                var outputFile = "compressedFile.gz";
+
+                                try
+                                {
+                                    using FileStream fs = File.Open(inputFile, FileMode.Open);
+                                    using FileStream cfs = File.Create(outputFile);
+                                    using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
+                                    {
+                                        fs.CopyTo(gs);
+                                        Console.WriteLine($"compressing File (name: {outputFile})");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine(ex.Message);
+                                    Console.WriteLine("Compression failed");
+                                }
+                                finally
+                                {
+                                    stream.Write(internalError);
+                                }
+                            }
+                            else if (!request.Contains("gzip"))
+                            {
+                                try
+                                {
+                                    Console.WriteLine($"file requested: {file}");
+                                    FileInfo fileInfo = new FileInfo(file);
+                                    long lenght = fileInfo.Length;
+                                    file = File.ReadAllText(file);
 
 
-                            var header = Encoding.UTF8.GetBytes(
-                                $"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
-                            var body = Encoding.UTF8.GetBytes($"{file}");
+                                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
+                                    var body = Encoding.UTF8.GetBytes($"{file}");
 
-                            stream.Write(header);
-                            stream.Write(body);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
+                                    stream.Write(header);
+                                    stream.Write(body);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine(ex.Message);
+                                }
+                            }
                         }
                     }
                     else if (!File.Exists(file))
@@ -155,13 +155,21 @@ namespace Server
                         Console.WriteLine($"file not found: {file}");
                         try
                         {
-                            if (request.Contains("POST"))
+                            if (request.Contains(id.ToString()))
                             {
-                                var split = request.Split("\r\n\r\n");
-                                Console.WriteLine($"creating new file (name: {file})");
-                                File.WriteAllText(file, split[1]);
+                                if (request.Contains("POST"))
+                                {
+                                    var split = request.Split("\r\n\r\n");
+                                    Console.WriteLine($"creating new file (name: {file})");
+                                    File.WriteAllText(file, split[1]);
 
-                                stream.Write(created);
+                                    stream.Write(created);
+                                }
+                            }
+                            else if (!request.Contains(id.ToString()))
+                            {
+                                stream.Write(forbidden);
+                                Console.WriteLine("id = false\nrefusing request\n");
                             }
                         }
                         catch (Exception ex)
