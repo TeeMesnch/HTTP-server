@@ -11,5 +11,6 @@ A somewhat minimal HTTP server implemented in C#.
 - C# 13
 
 ## Security Concerns
+- The ID isnt a safe solution
 - The file function is unsafe
 - The function to create and compress files is unsafe
