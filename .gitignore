@@ -1,0 +1,28 @@
+# ----------------------------
+# Rider / IntelliJ
+# ----------------------------
+/shelf/
+/workspace.xml
+/.idea.HTTPserver.iml
+/projectSettingsUpdater.xml
+/contentModel.xml
+/modules.xml
+
+# Editor-based HTTP Client requests
+/httpRequests/
+
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+# ----------------------------
+# .NET build artifacts
+# ----------------------------
+bin/
+obj/
+HTTPserver.sln.DotSettings.user/
+
+# ----------------------------
+# macOS system files
+# ----------------------------
+.DS_Store
