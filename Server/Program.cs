@@ -14,7 +14,7 @@ namespace Server
             Directory.SetCurrentDirectory(newDirectory);
             Console.WriteLine($"\nCurrent Directory: {Directory.GetCurrentDirectory()}\n");
 
-            const int port = 6000;
+            const int port = 4200;
             var ip = IPAddress.Loopback;
             
             TcpListener server = new TcpListener(ip, port);
@@ -38,7 +38,6 @@ namespace Server
 
                 using TcpClient client = server.AcceptTcpClient();
                 var stream = client.GetStream();
-                var reader = new StreamReader(stream, Encoding.UTF8);
 
                 var url = "";
                 string request = "";
@@ -60,7 +59,27 @@ namespace Server
                 if (url == "/")
                 {
                     Console.WriteLine("index.html requested");
-                    stream.Write(response);
+                    
+                    try
+                    {
+                        var file = "index.html";
+
+                        FileInfo fileInfo = new FileInfo(file);
+                        long length = fileInfo.Length;
+                        file = File.ReadAllText(file);
+
+                        var header = Encoding.UTF8.GetBytes(
+                            $"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: {length}\r\n\r\n");
+                        var body = Encoding.UTF8.GetBytes(file);
+
+                        stream.Write(header);
+                        stream.Write(body);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Error serving index.html");
+                    }
                 }
                 else if (url.StartsWith("/echo/"))
                 {
@@ -122,10 +141,6 @@ namespace Server
                                     Console.WriteLine(ex.Message);
                                     Console.WriteLine("Compression failed");
                                 }
-                                finally
-                                {
-                                    stream.Write(internalError);
-                                }
                             }
                             else if (!request.Contains("gzip"))
                             {
@@ -182,11 +197,6 @@ namespace Server
                         Console.WriteLine($"file not found: {file}");
                         stream.Write(notFound);
                     }
-                }
-                else
-                {
-                    Console.WriteLine("not found 404");
-                    stream.Write(notFound);
                 }
             }
         }
