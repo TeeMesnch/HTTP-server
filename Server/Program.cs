@@ -1,203 +1,243 @@
 ﻿using System.Net;
-using System.IO.Compression;
 using System.Net.Sockets;
+using System.IO.Compression;
 using System.Text;
 
 namespace Server
 {
-    class MainClass
+    class Server
     {
         static void Main(string[] args)
         {
-            //directory for testing purposes
+            // TESTING DIRECTORY
             string newDirectory = "/Users/jonathan/desktop/Server";
             Directory.SetCurrentDirectory(newDirectory);
-            Console.WriteLine($"\nCurrent Directory: {Directory.GetCurrentDirectory()}\n");
+            Console.WriteLine($"changed directory (directory: {newDirectory})\n");
+            
+            RunServer();
+        }
 
+        static private List<TcpClient> TCPclient = new List<TcpClient>();
+        
+        static void RunServer()
+        {
             const int port = 4200;
-            var ip = IPAddress.Loopback;
+            var ip = IPAddress.Any;
+            
+            Random random = new Random();
+            int id = random.Next();
             
             TcpListener server = new TcpListener(ip, port);
             server.Start();
             
             Console.WriteLine($"starting server (port: {port}) (ip: {ip})\n");
-
-            bool running = true;
-            
-            Random rndInt = new Random();
-            int id = rndInt.Next();
             Console.WriteLine($"(id: {id})\n");
 
-            while (running)
+            while (true)
             {
-                var response = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
-                var created = Encoding.UTF8.GetBytes("HTTP/1.1 201 Created\r\n\r\n");
-                var notFound = Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n");
-                var forbidden  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
-                var internalError = Encoding.UTF8.GetBytes("HTTP/1.1 500 Internal Error\r\n\r\n");
-
                 using TcpClient client = server.AcceptTcpClient();
                 var stream = client.GetStream();
-
-                var url = "";
-                string request = "";
                 
+                lock (TCPclient)
+                {
+                    TCPclient.Add(client);
+                }
+
+                string url = "";
+                string request = "";
+
                 try
                 {
                     byte[] buffer = new byte[1024];
                     int bytesRead = stream.Read(buffer, 0, buffer.Length);
                     request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    var lines = request.Split("\r\n");
-                    var requestLine = lines[0].Split(' ');
+                    var lines =  request.Split("\r\n");
+                    var requestLine = lines[0].Split(" ");
                     url = requestLine[1];
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e);
+                    Console.WriteLine("Error parsing request");
                 }
-                
+
                 if (url == "/")
                 {
-                    Console.WriteLine("index.html requested");
-                    
-                    try
-                    {
-                        var file = "index.html";
-
-                        FileInfo fileInfo = new FileInfo(file);
-                        long length = fileInfo.Length;
-                        file = File.ReadAllText(file);
-
-                        var header = Encoding.UTF8.GetBytes(
-                            $"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: {length}\r\n\r\n");
-                        var body = Encoding.UTF8.GetBytes(file);
-
-                        stream.Write(header);
-                        stream.Write(body);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine("Error serving index.html");
-                    }
+                    Index();
                 }
                 else if (url.StartsWith("/echo/"))
                 {
-                    var prefix = "/echo/".Length;
-                    var bodyStr = url.Substring(prefix);
-                    
-                    var body = Encoding.UTF8.GetBytes($"{bodyStr}");
-                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
-                    
-                    stream.Write(header);
-                    stream.Write(body);
+                    Echo(url);
                 }
-                else if (url.StartsWith("/user-agent"))
+                else if (url.StartsWith("/file/"))
                 {
-                    var line = request;
-                    var userAgent = line;
-
-                    if (line.Contains("User-Agent:"))
-                    {
-                        userAgent = line.Replace("Accept: */*", "");
-                        userAgent = userAgent.Substring(46);
-                    }
-
-                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n");
-                    var body = Encoding.UTF8.GetBytes($"{userAgent}");
-
-                    Console.WriteLine("user-agent requested");
-                    
-                    stream.Write(header);
-                    stream.Write(body);
+                    FileRequest(url, request, id);
                 }
-                else if (url.StartsWith($"/file/"))
+            }
+        }
+
+        static void Index()
+        {
+            var file = "index.html";
+            long fileSize = 0;
+
+            try
+            {
+                FileInfo fileInfo = new FileInfo(file);
+                fileSize = fileInfo.Length;
+                file = File.ReadAllText(file);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("Error reading index.html");
+            }
+
+            var indexHeader =Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK \r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {fileSize}\r\n\r\n");
+            var indexBody = Encoding.UTF8.GetBytes(file);
+            
+            SendData(indexHeader, indexBody);
+        }
+
+        static void Echo(string url)
+        {
+            var prefix = "/echo/".Length; 
+            var bodyStr = url.Substring(prefix);
+            
+            var echoBody = Encoding.UTF8.GetBytes($"{bodyStr}");
+            var echoHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {bodyStr.Length}\r\n\r\n");
+
+            try
+            {
+                SendData(echoHeader, echoBody);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("Error replaying echo");
+            }
+            
+            Console.WriteLine($"Echo Command (message: {bodyStr})");
+        }
+
+        static void FileRequest(string url, string request, int id)
+        {
+            var prefix = "/file/".Length;
+            var fileName = url.Substring(prefix);
+            var file = "";
+            
+            if (request.Contains(id.ToString()))
+            {
+                if (File.Exists(fileName))
                 {
-                    var prefix = "/file/".Length;
-                    var file = url.Substring(prefix);
-                    
-                    if (File.Exists(file))
+                    if (request.Contains("gzip"))
                     {
-                        if (request.Contains(id.ToString()))
-                        {
-                            if (request.Contains("gzip"))
-                            {
-                                var fileName = url.Substring(prefix);
-                                var inputFile = fileName;
-                                var outputFile = "compressedFile.gz";
-
-                                try
-                                {
-                                    using FileStream fs = File.Open(inputFile, FileMode.Open);
-                                    using FileStream cfs = File.Create(outputFile);
-                                    using GZipStream gs = new GZipStream(cfs, CompressionMode.Compress);
-                                    {
-                                        fs.CopyTo(gs);
-                                        Console.WriteLine($"compressing File (name: {outputFile})");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine(ex.Message);
-                                    Console.WriteLine("Compression failed");
-                                }
-                            }
-                            else if (!request.Contains("gzip"))
-                            {
-                                try
-                                {
-                                    Console.WriteLine($"file requested: {file}");
-                                    FileInfo fileInfo = new FileInfo(file);
-                                    long lenght = fileInfo.Length;
-                                    file = File.ReadAllText(file);
-
-
-                                    var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {lenght}\r\n\r\n");
-                                    var body = Encoding.UTF8.GetBytes($"{file}");
-
-                                    stream.Write(header);
-                                    stream.Write(body);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine(ex.Message);
-                                }
-                            }
-                        }
-                    }
-                    else if (!File.Exists(file))
-                    {
-                        Console.WriteLine($"file not found: {file}");
-                        try
-                        {
-                            if (request.Contains(id.ToString()))
-                            {
-                                if (request.Contains("POST"))
-                                {
-                                    var split = request.Split("\r\n\r\n");
-                                    Console.WriteLine($"creating new file (name: {file})");
-                                    File.WriteAllText(file, split[1]);
-
-                                    stream.Write(created);
-                                }
-                            }
-                            else if (!request.Contains(id.ToString()))
-                            {
-                                stream.Write(forbidden);
-                                Console.WriteLine("id = false\nrefusing request\n");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
+                        Compress(url);
                     }
                     else
                     {
-                        Console.WriteLine($"file not found: {file}");
-                        stream.Write(notFound);
+                        Console.WriteLine($"requested File (name: {fileName})");
+                        FileInfo fileInfo = new FileInfo(fileName);
+                        long fileSize = fileInfo.Length;
+                        file = File.ReadAllText(fileName);
+                    
+                        var header = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {fileSize}\r\n\r\n");
+                        var body = Encoding.UTF8.GetBytes($"{file}");
+                    
+                        SendData(header, body);
                     }
                 }
+                else if (!File.Exists(fileName))
+                {
+                    if (request.Contains("POST"))
+                    {
+                        Post(fileName, request);
+                    }
+                    else
+                    {
+                        var notfoundHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 404 Not Found\r\n\r\n");;
+                        var emptyBody = Encoding.UTF8.GetBytes("");
+                        
+                        SendData(notfoundHeader, emptyBody);
+                    }
+                }
+            }
+            else if (!request.Contains(id.ToString()))
+            {
+                Console.WriteLine("Access forbidden (code: 403)");
+                
+                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
+                var emptyBody = Encoding.UTF8.GetBytes("");
+                
+                SendData(forbiddenHeader, emptyBody);
+            }
+        }
+
+        static void Post(string fileName, string request)
+        {
+            var requestBody = request.Split("\r\n\r\n");
+            var fileContent = requestBody[1];
+
+            try
+            {
+                File.WriteAllText(fileName, fileContent);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            Console.WriteLine("POST request fulfilled");
+        }
+
+        static void Compress(string url)
+        {
+            var fileName = url.Substring("/file/".Length);
+            var inputFile = fileName;
+            var outputFile = "compressedFile.gz";
+
+            try
+            {
+                using FileStream fs = File.Open(inputFile, FileMode.Open);
+                using FileStream fsc = File.Create(outputFile);
+                using GZipStream gs = new GZipStream(fsc, CompressionMode.Compress);
+                fs.CopyTo(gs);
+                Console.WriteLine($"compressing file (name: {inputFile})");
+                
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+        
+        static void SendData(byte[] header, byte[] body)
+        {
+            try
+            {
+                lock (TCPclient)
+                {
+                    foreach (var client in TCPclient.ToList())
+                    {
+                        try
+                        {
+                            client.GetStream().Write(header, 0, header.Length);
+                            client.GetStream().Write(body, 0, body.Length);
+                            Console.WriteLine("successfully sent Data");
+                        }
+                        catch
+                        {
+                            client.Close();
+                            TCPclient.Remove(client);
+                            Console.WriteLine("Error sending Data");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("Error sending data");
             }
         }
     }
