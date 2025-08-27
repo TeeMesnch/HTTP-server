@@ -22,7 +22,7 @@ namespace Server
         static void RunServer()
         {
             const int port = 4200;
-            var ip = IPAddress.Any;
+            var ip = IPAddress.Parse("127.0.0.1");
             
             Random random = new Random();
             int id = random.Next();
@@ -63,7 +63,7 @@ namespace Server
 
                 if (url == "/")
                 {
-                    Index();
+                    ServeIndex();
                 }
                 else if (url.StartsWith("/echo/"))
                 {
@@ -76,16 +76,18 @@ namespace Server
             }
         }
 
-        static void Index()
+        static void ServeIndex()
         {
-            var file = "index.html";
-            long fileSize = 0;
-
+            var indexHtml = "index.html";
+            var indexCss = "index.css";
+            long htmlSize = 0;
+            long cssSize = 0;
+            
             try
             {
-                FileInfo fileInfo = new FileInfo(file);
-                fileSize = fileInfo.Length;
-                file = File.ReadAllText(file);
+                FileInfo fileInfo = new FileInfo(indexHtml);
+                htmlSize = fileInfo.Length;
+                indexHtml = File.ReadAllText(indexHtml);
             }
             catch (Exception e)
             {
@@ -93,10 +95,26 @@ namespace Server
                 Console.WriteLine("Error reading index.html");
             }
 
-            var indexHeader =Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK \r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {fileSize}\r\n\r\n");
-            var indexBody = Encoding.UTF8.GetBytes(file);
+            try
+            {
+                FileInfo fileInfo = new FileInfo(indexCss);
+                cssSize = fileInfo.Length;
+                indexCss = File.ReadAllText(indexCss);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Console.WriteLine("Error reading index.css");
+            }
             
-            SendData(indexHeader, indexBody);
+            var htmlHeader =Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK \r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {htmlSize}\r\n\r\n");
+            var htmlBody = Encoding.UTF8.GetBytes(indexHtml);
+            
+            var cssHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK \r\nContent-Type: text/css; charset=utf-8\r\nContent-Length: {cssSize}\r\n\r\n");
+            var cssBody = Encoding.UTF8.GetBytes(indexCss);
+            
+            SendData(htmlHeader, htmlBody);
+            SendData(cssHeader, cssBody);
         }
 
         static void Echo(string url)
@@ -225,11 +243,11 @@ namespace Server
                             client.GetStream().Write(body, 0, body.Length);
                             Console.WriteLine("successfully sent Data");
                         }
-                        catch
+                        catch (Exception e)
                         {
+                            Console.WriteLine("TCP client Exception");
                             client.Close();
                             TCPclient.Remove(client);
-                            Console.WriteLine("Error sending Data");
                         }
                     }
                 }

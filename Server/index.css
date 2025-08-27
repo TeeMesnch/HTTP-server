@@ -1,0 +1,14 @@
+.button_login {
+    border: none;
+    font-size: 30px;
+    background-color: black;
+    color: white;
+}
+
+.button_register {
+    border: none;
+    font-size: 30px;
+    background-color: darkslategrey;
+    color: green;
+    animation: jelly infinite;
+}
