@@ -24,8 +24,10 @@ namespace Server
             const int port = 4200;
             var ip = IPAddress.Parse("127.0.0.1");
             
-            Random random = new Random();
-            int id = random.Next();
+            //Random random = new Random();
+            //int id = random.Next();
+
+            int id = 1234;
             
             TcpListener server = new TcpListener(ip, port);
             server.Start();
@@ -195,16 +197,31 @@ namespace Server
         {
             var requestBody = request.Split("\r\n\r\n");
             var fileContent = requestBody[1];
+            var fileEnding = fileName.Split(".");
+            var allowedType = "txt";
 
-            try
+            if (fileEnding[1] == allowedType)
             {
-                File.WriteAllText(fileName, fileContent);
+                try
+                {
+                    File.WriteAllText(fileName, fileContent);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+
+                Console.WriteLine("POST request fulfilled");
             }
-            catch (Exception e)
+            else if (fileEnding[1] != allowedType)
             {
-                Console.WriteLine(e);
+                Console.WriteLine("Creating forbidden File Type (code: 403)");
+                
+                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
+                var emptyBody = Encoding.UTF8.GetBytes("");
+                
+                SendData(forbiddenHeader, emptyBody);
             }
-            Console.WriteLine("POST request fulfilled");
         }
 
         static void Compress(string url)
