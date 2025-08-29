@@ -154,6 +154,10 @@ namespace Server
                     {
                         Compress(url);
                     }
+                    else if (request.Contains("DELETE"))
+                    {
+                        Delete(fileName);
+                    }
                     else
                     {
                         Console.WriteLine($"requested File (name: {fileName})");
@@ -198,7 +202,7 @@ namespace Server
             var requestBody = request.Split("\r\n\r\n");
             var fileContent = requestBody[1];
             var fileEnding = fileName.Split(".");
-            var allowedType = "txt";
+            const string allowedType = "txt";
 
             if (fileEnding[1] == allowedType)
             {
@@ -224,6 +228,19 @@ namespace Server
             }
         }
 
+        static void Delete(string fileName)
+        {
+            string deleteMessage = $"deleted file (name {fileName})"; 
+            
+            File.Delete(fileName);
+            Console.WriteLine($"Deleted file (name: {fileName})");
+            
+            var deleteBody = Encoding.UTF8.GetBytes(deleteMessage);
+            var deletedHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {deleteMessage.Length}\r\n\r\n");
+            
+            SendData(deletedHeader, deleteBody);
+        }
+
         static void Compress(string url)
         {
             var fileName = url.Substring("/file/".Length);
@@ -235,7 +252,9 @@ namespace Server
                 using FileStream fs = File.Open(inputFile, FileMode.Open);
                 using FileStream fsc = File.Create(outputFile);
                 using GZipStream gs = new GZipStream(fsc, CompressionMode.Compress);
+                
                 fs.CopyTo(gs);
+                
                 Console.WriteLine($"compressing file (name: {inputFile})");
                 
             }
@@ -262,7 +281,7 @@ namespace Server
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("TCP client Exception");
+                            Console.WriteLine("Removed TCP client from List");
                             client.Close();
                             TCPclient.Remove(client);
                         }
