@@ -1,13 +1,22 @@
-using System.Text;
-
 namespace Server
 {
-    public class HTTPparser
+    public class HttpParser
     {
-        public static void getMethod()
+        public static string GetMethod(string request)
         {
+            var method = "";
+
+            try
+            {
+                method = request.Split("/")[0];
+                method = method.Replace(" ", "");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error parsing Method");
+            }
             
-            Console.WriteLine("getMethod");
+            return method;
         }
 
         public static string GetDomain(string request)
@@ -22,24 +31,51 @@ namespace Server
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
                 Console.WriteLine("Error parsing Domain");
             }
+            
             return url;
         }
     
         
-        static void getVersion()
+        public static string GetVersion(string request, string url, string method)
         {
-            Console.WriteLine("getVersion");
+            string version = "";
+
+            try
+            {
+                var prefix = method.Length + url.Length + 2;
+                var line = request.Substring(prefix);
+                version = line.Split("\r\n")[0];
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error parsing HTTP Version");
+            }
+            
+            return version;
         }
 
-        static void getHeaders()
+        public static string GetHeaders(string request)
         {
-            Console.WriteLine("getHeaders");
+            var headers = "";
+
+            try
+            {
+                var line = request.Split("\r\n");
+                int toTrim = line[0].Length;
+                
+                headers = request.Substring(toTrim);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error parsing Headers");
+            }
+            
+            return headers;
         }
         
-        static void getBody()
+        static void GetBody()
         {
             Console.WriteLine("getBody");
         }

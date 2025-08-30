@@ -25,7 +25,8 @@ namespace Server
             var ip = IPAddress.Parse("127.0.0.1");
             
             //Random random = new Random();
-            //int id = random.Next();
+            //int rnd = random.Next();
+            //string id = rnd.ToString();
 
             int id = 1234;
             
@@ -49,7 +50,10 @@ namespace Server
                 int bytesRead = stream.Read(buffer, 0, buffer.Length);
                 string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-                var url = HTTPparser.GetDomain(request);
+                var url = HttpParser.GetDomain(request);
+                var method = HttpParser.GetMethod(request);
+                var version = HttpParser.GetVersion(request, url, method);
+                var headers = HttpParser.GetHeaders(request);
                 
                 if (url == "/")
                 {
@@ -61,7 +65,7 @@ namespace Server
                 }
                 else if (url.StartsWith("/file/"))
                 {
-                    FileRequest(url, request, id);
+                    FileRequest(url, request, id, method);
                 }
             }
         }
@@ -128,7 +132,7 @@ namespace Server
             Console.WriteLine($"Echo Command (message: {bodyStr})");
         }
 
-        static void FileRequest(string url, string request, int id)
+        static void FileRequest(string url, string request, int id, string method)
         {
             var prefix = "/file/".Length;
             var fileName = url.Substring(prefix);
@@ -142,7 +146,7 @@ namespace Server
                     {
                         Compress(url);
                     }
-                    else if (request.Contains("DELETE"))
+                    else if (method == "DELETE")
                     {
                         Delete(fileName);
                     }
@@ -161,7 +165,7 @@ namespace Server
                 }
                 else if (!File.Exists(fileName))
                 {
-                    if (request.Contains("POST"))
+                    if (method == "POST")
                     {
                         Post(fileName, request);
                     }
@@ -269,7 +273,7 @@ namespace Server
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Removed TCP client from List");
+                            Console.WriteLine("Exception removing Tcp Client");
                             client.Close();
                             TCPclient.Remove(client);
                         }
