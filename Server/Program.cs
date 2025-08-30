@@ -44,25 +44,13 @@ namespace Server
                 {
                     TCPclient.Add(client);
                 }
+                
+                byte[] buffer = new byte[1024];
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-                string url = "";
-                string request = "";
-
-                try
-                {
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    var lines =  request.Split("\r\n");
-                    var requestLine = lines[0].Split(" ");
-                    url = requestLine[1];
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    Console.WriteLine("Error parsing request");
-                }
-
+                var url = HTTPparser.GetDomain(request);
+                
                 if (url == "/")
                 {
                     ServeIndex();
