@@ -179,7 +179,7 @@ namespace Server
                     }
                     else
                     {
-                        var notfoundHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 404 Not Found\r\n\r\n");;
+                        var notfoundHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");;
                         var emptyBody = Encoding.UTF8.GetBytes("");
                         
                         SendData(notfoundHeader, emptyBody);
@@ -190,7 +190,7 @@ namespace Server
             {
                 Console.WriteLine("Access forbidden (code: 403)");
                 
-                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
+                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
                 var emptyBody = Encoding.UTF8.GetBytes("");
                 
                 SendData(forbiddenHeader, emptyBody);
@@ -221,7 +221,7 @@ namespace Server
             {
                 Console.WriteLine("Creating forbidden File Type (code: 403)");
                 
-                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\n\r\n");
+                var forbiddenHeader  = Encoding.UTF8.GetBytes("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
                 var emptyBody = Encoding.UTF8.GetBytes("");
                 
                 SendData(forbiddenHeader, emptyBody);
