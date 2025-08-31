@@ -4,16 +4,17 @@ namespace Server
     {
         public static string GetMethod(string request)
         {
-            var method = "";
+            string method;
 
             try
             {
                 method = request.Split("/")[0];
                 method = method.Replace(" ", "");
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.WriteLine("Error parsing Method");
+                throw;
             }
             
             return method;
@@ -21,7 +22,7 @@ namespace Server
 
         public static string GetDomain(string request)
         {
-            string url = "";
+            string url;
             
             try
             {
@@ -29,9 +30,10 @@ namespace Server
                 var requestLine = lines[0].Split(" ");
                 url = requestLine[1];
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.WriteLine("Error parsing Domain");
+                throw;
             }
             
             return url;
@@ -40,7 +42,7 @@ namespace Server
         
         public static string GetVersion(string request, string url, string method)
         {
-            string version = "";
+            string version;
 
             try
             {
@@ -48,9 +50,10 @@ namespace Server
                 var line = request.Substring(prefix);
                 version = line.Split("\r\n")[0];
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.WriteLine("Error parsing HTTP Version");
+                throw;
             }
             
             return version;
@@ -58,7 +61,7 @@ namespace Server
 
         public static string GetHeaders(string request)
         {
-            var headers = "";
+            string headers;
 
             try
             {
@@ -67,17 +70,34 @@ namespace Server
                 
                 headers = request.Substring(toTrim);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Console.WriteLine("Error parsing Headers");
+                throw;
             }
             
             return headers;
         }
         
-        static void GetBody()
+        public static string GetBody(string request)
         {
-            Console.WriteLine("getBody");
+            string body;
+
+            try
+            {
+                body =  request.Split("\r\n\r\n")[1];
+
+                if (body == "")
+                {
+                    Console.WriteLine("the body provided is empty");
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Error parsing Body");
+                throw;
+            }
+            return body;
         }
     }
 }

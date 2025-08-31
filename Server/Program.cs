@@ -28,7 +28,7 @@ namespace Server
             //int rnd = random.Next();
             //string id = rnd.ToString();
 
-            int id = 1234;
+            string id = "1234";
             
             TcpListener server = new TcpListener(ip, port);
             server.Start();
@@ -54,6 +54,7 @@ namespace Server
                 var method = HttpParser.GetMethod(request);
                 var version = HttpParser.GetVersion(request, url, method);
                 var headers = HttpParser.GetHeaders(request);
+                var body = HttpParser.GetBody(request);
                 
                 if (url == "/")
                 {
@@ -132,13 +133,13 @@ namespace Server
             Console.WriteLine($"Echo Command (message: {bodyStr})");
         }
 
-        static void FileRequest(string url, string request, int id, string method)
+        static void FileRequest(string url, string request, string id, string method)
         {
             var prefix = "/file/".Length;
             var fileName = url.Substring(prefix);
             var file = "";
             
-            if (request.Contains(id.ToString()))
+            if (request.Contains(id))
             {
                 if (File.Exists(fileName))
                 {
@@ -178,7 +179,7 @@ namespace Server
                     }
                 }
             }
-            else if (!request.Contains(id.ToString()))
+            else if (!request.Contains(id))
             {
                 Console.WriteLine("Access forbidden (code: 403)");
                 
@@ -222,15 +223,22 @@ namespace Server
 
         static void Delete(string fileName)
         {
-            string deleteMessage = $"deleted file (name {fileName})"; 
+            string deleteMessage = $"deleted file (name {fileName})";
+
+            try
+            {
+                File.Delete(fileName);
+                Console.WriteLine($"Deleted file (name: {fileName})");
             
-            File.Delete(fileName);
-            Console.WriteLine($"Deleted file (name: {fileName})");
+                var deleteBody = Encoding.UTF8.GetBytes(deleteMessage);
+                var deletedHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {deleteMessage.Length}\r\n\r\n");
             
-            var deleteBody = Encoding.UTF8.GetBytes(deleteMessage);
-            var deletedHeader = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {deleteMessage.Length}\r\n\r\n");
-            
-            SendData(deletedHeader, deleteBody);
+                SendData(deletedHeader, deleteBody);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Delete failed");
+            }
         }
 
         static void Compress(string url)
@@ -253,7 +261,7 @@ namespace Server
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                throw;
+                Console.WriteLine("Compression failed");
             }
         }
         
@@ -271,9 +279,9 @@ namespace Server
                             client.GetStream().Write(body, 0, body.Length);
                             Console.WriteLine("successfully sent Data");
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            Console.WriteLine("Exception removing Tcp Client");
+                            Console.WriteLine("Exception removing Tcp Client (reason: not retrievable)\n");
                             client.Close();
                             TCPclient.Remove(client);
                         }
