@@ -24,11 +24,9 @@ namespace Server
             const int port = 4200;
             var ip = IPAddress.Parse("127.0.0.1");
             
-            //Random random = new Random();
-            //int rnd = random.Next();
-            //string id = rnd.ToString();
-
-            string id = "1234";
+            Random random = new Random();
+            int rnd = random.Next();
+            string id = rnd.ToString();
             
             TcpListener server = new TcpListener(ip, port);
             server.Start();
